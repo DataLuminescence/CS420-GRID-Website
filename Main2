@@ -1,0 +1,282 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.ticker as ticker
+
+from lexer import Lexer
+from parser_ import Parser
+from interpreter import Interpreter
+
+# Used to determine if a word is a keyword of the language.
+keywords = {"class", "main", "for", "if", "else", "def", "{", "}", 
+            ";", "int", "string", "bool"}
+
+# Used to count opened curly braces in program.
+brace_count = 0
+
+# Create a dictionary to store variables in program.
+state = dict()
+
+# Takes in a value to look for and a state (current "state" in the code).
+# In other words whatever the current variables and values of said variables
+# matter depending on where in the code we are located
+def varmap(targetVar, state):
+    
+    # TargetVar is a variable we are looking for in state. State is the 
+    # dictionary of variable with certain values. If a target variable
+    # is not located, the function will indicate a value error has taken
+    # place and returns "Error: Var not found"
+    if (targetVar in state):
+        return state[targetVar]
+    else:
+        return "Error: Var not found"
+
+# Counts opened curly braces. By the end of the program this
+# counter should be at 0 otherwise there is an uneven amount 
+# of curly braces.
+def brace_handler():
+    global brace_count
+    if brace_count == 1:
+        brace_count -= 1
+    else: 
+        brace_count += 1
+    return brace_count
+
+# Takes in start and endpoint of number line as well as title 
+def setup(ax, xlim_start, xlim_end, title):
+    """Set up common parameters for the Axes in the example."""
+    # only show the bottom spine
+    ax.yaxis.set_major_locator(ticker.NullLocator())
+    ax.spines[['left', 'right', 'top']].set_visible(False)
+
+    ax.xaxis.set_ticks_position('bottom')
+    ax.tick_params(which='major', width=1.00, length=5)
+    ax.tick_params(which='minor', width=0.75, length=2.5)
+    ax.set_xlim(xlim_start, xlim_end)
+    ax.text(0.0, 0.2, title, transform=ax.transAxes,
+            fontsize=14, fontname='Monospace', color='tab:blue')
+
+# Takes in dimensions wanted for the GRID we will use for this
+# program. If only the 1st and/or 2nd slots are used, this is
+# a number line. If the first 3 and/or 4 slots are used, this
+# is a 2 dimentional graph. If the first 5 and/or 6 slots are
+# used this is a 3 dimentional graph. 
+def set_scale(line):
+    scale = line.replace(" ","").replace("(","").replace(")","").split("main")
+    scale.pop(0)
+    scale = ''.join(scale)
+    scale = scale.split(",")
+
+    # Keeps track of how many dimensions were set at start of program
+    dim_counter = 0
+
+    # Checks to see how many dimensions user needs based on
+    # number of ordered pairs that represent start point and 
+    # endpoint of a graph. ex: 
+    # [0, 10] 1 dimension, 
+    # [0, 10, 0, 10] 2 dimensions, 
+    # [0, 10, 0, 10, 0, 10] 3 dimensions. 
+    for digit in range(len(scale)):
+        if(int(scale[digit])):
+            dim_counter += 1
+            print(scale[digit])
+    
+    if(dim_counter <= 2):
+
+        xlim_start = scale[0]
+        xlim_end = scale[1]
+        # Number line 
+        fig1, num_line = plt.subplots(1, 1, layout='constrained')
+        setup(num_line, xlim_start, xlim_end,title="Number Line (1 Dimension)")
+        num_line.xaxis.set_major_locator(ticker.LinearLocator(2))
+        num_line.xaxis.set_minor_locator(ticker.LinearLocator(int(xlim_end) + 1 - int(xlim_start)))
+        
+        # majors = [0, 1, 5]
+        # num_line.xaxis.set_major_locator(ticker.FixedLocator(majors))
+
+        # minors = np.linspace(0, 1, 11)[1:-1]
+        # num_line.xaxis.set_minor_locator(ticker.FixedLocator(minors))
+
+
+        
+        # add an arrow
+        plt.annotate('5', (0,0), xytext = (5, 4.85), 
+                    arrowprops=None, 
+                    horizontalalignment='right')
+
+        fig, ax = plt.subplots(figsize=(10, 10), facecolor='lightskyblue',
+                       layout='constrained')
+        
+        fig.suptitle('2D Graph')
+        ax.set_title('Axes', loc='left', fontstyle='oblique', fontsize='medium')
+
+        num_line = plt.figure()
+        ax = num_line.add_subplot()
+        ax.set_xlim(0,10)
+        ax.set_ylim(0,10)
+
+        # draw lines
+        xmin = 0
+        xmax = 10
+        y = 5
+        height = 0
+
+        plt.hlines(y, xmin, xmax)
+        plt.vlines(xmin, y - height / 2., y + height / 2.)
+        plt.vlines(xmax, y - height / 2., y + height / 2.)
+
+        # draw a point on the line
+        px = 4
+        temp = 5
+        plt.plot(px,y, 'ro', ms = 15, mfc = 'r')
+        plt.plot(temp,y, 'ro', ms = 15, mfc = 'r')
+
+        # add an arrow
+        plt.annotate('5', (0,0), xytext = (5, 4.85), 
+                    arrowprops=None, 
+                    horizontalalignment='right')
+
+        # add numbers
+        plt.text(xmin - 0.1, y, '0', horizontalalignment='right')
+        plt.text(xmax + 0.1, y, '100', horizontalalignment='left')
+
+        plt.axis('off')
+        plt.show()
+
+
+
+    # elif(dim_counter <= 4):
+
+    #     test1 = np.linspace(0, 10, 5, endpoint=True, retstep=False, dtype=None, axis=0)
+    #     test2 = np.linspace(0, 10, 5, endpoint=True, retstep=False, dtype=None, axis=0)
+    #     plt.plot(test1, np.zeros(5), 'o')
+    #     plt.plot(test2, np.zeros(5) + .5, 'o')
+    #     plt.ylim(-0.5, 2)
+    #     plt.show()
+
+    #     plt.plot(scale[0],scale[1])
+
+def set_var(line):
+    
+    # int var1 = + 7
+    var_string = line.split(" ")
+    
+    # ['int', 'var1', '=', '+', '7']
+    var_string.pop(0)
+    
+    # ['var1', '=', '+', '7']
+    var_string = ''.join(var_string)
+    
+    # var1=+7
+
+
+
+
+
+
+
+    # try:
+    #     # Create instance of Lexer class
+    #     lexer = Lexer(var_string)
+
+    #     # Call get_token function to 
+    #     tokens = lexer.get_token()
+
+    #     # Create instance of Parser class 
+    #     parser = Parser(tokens)
+    #     tree = parser.parse()
+    #     if not tree: return None
+    #     interpreter = Interpreter()
+    #     value = interpreter.visit(tree)
+    #     print(value)
+    # except Exception as e:
+    #     print(e)
+
+# Function takes in a string from instructions and checks if
+# if it is a keyword. If so calls the function that handles 
+# said instruction.
+def keyword_handler(line):
+    
+    if("class" in line):
+        key_string, class_name = line.split()
+        # print(f"The name of the class is " + class_name)
+
+    elif("{" in line or "}" in line):
+        temp = brace_handler()
+        print("} keyword. Brace count: " + str(temp))
+        # Todo: Scope
+        
+    elif("main" in line): 
+        print("Main keyword")   
+        set_scale(line)
+        # Todo: Get x, y, z scale from line
+
+    elif("int" in line): 
+        print("int keyword") 
+        set_var(line)
+
+    elif("for" in line): 
+        print("For keyword")    
+        # Todo: Get loop constraints from line
+        # call get_loop()
+
+    elif("if" in line): 
+        print("If keyword")
+        # Todo: Get if constraints from line
+        # call get_if()
+    
+    elif("else" in line):
+        print("Else keyword")
+        # Todo: Get if constraints from line
+        # call get_else()
+    
+    elif("def" in line): 
+        print("Def keyword")
+        # Todo: Get arguments and function name from
+        # line
+        # call get_function()
+
+    elif(";" in line):
+        print("; keyword. ")
+        # Todo: Try catch that uses lexer and tokens to 
+        # iterate through all braces and close program 
+        # if braces are odd number
+        temp = brace_handler()
+        if(temp%2 != 0):
+            print("Brace count: " + str(temp) + " Error. Missing brace. ")
+        
+# ******************************************************** #
+
+# Takes in a program which is a series on instructions
+def executeProgram(program):
+
+    # Loops through instructions and because our instructions
+    # already have a line break built in, we use the default 
+    # splitlines feature to iterate through all instructions
+    for line in program.splitlines():
+
+        # Todo: Try catch statement that uses lexer and tokens
+        # to test the code for open and close "{" "}" and if
+        # there is a token missing a brace token then throw 
+        # error and close program. 
+
+        keyword_handler(line)
+
+# ******************************************************** #
+
+# Instructions that we will feed to our interpreter
+sampleProgram = """
+class Assignment1
+{
+    main( (0, 100), (0,0), (0, 0) )
+    {
+        int var1 = + 7
+		int var2 = - 5
+		Point plotA = (var1) 
+        Point plotB = (var2) 
+        Line lineA = (plotB, plotA) 
+    }
+};
+"""
+
+# We feed the instructions into execute program to be interpreted
+executeProgram(sampleProgram)
